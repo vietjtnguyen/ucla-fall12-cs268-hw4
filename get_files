@@ -1,0 +1,3 @@
+#!/bin/bash
+wget http://www.cs.ucla.edu/~soatto/lectures/LDWS_calibrate.tar.gz
+wget http://www.cs.ucla.edu/~soatto/lectures/LDWS_test.tar.gz
