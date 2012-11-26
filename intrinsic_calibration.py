@@ -81,10 +81,10 @@ def calibrate_camera_from_images(image_paths, image_size, cell_shape, cell_size,
 	found_corner_sets = []
 
 	# walk through the subset of images gathering found chess board corners
-	for image_name in image_paths:
+	for image_path in image_paths:
 
 		# load the image
-		cv_image = cv2.imread(image_name)
+		cv_image = cv2.imread(image_path)
 
 		# find the chessboard corners
 		chessboard_result = cv2.findChessboardCorners(

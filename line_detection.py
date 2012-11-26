@@ -34,6 +34,25 @@ if __name__ == '__main__':
 
 	intrinsic_matrix, distortion_coefficients = intrinsic_calibration.hw4_calibration(False)
 
+	# regions of interest
+	# row  left    right   region
+	#      center  center  width
+	# 318  55      375     73
+	# 218  194     276     298
+
+	cv2.namedWindow('edges')
+
+	for image_path in image_paths:
+		cv_image = cv2.imread(image_path)
+
+		low_threshold = 100
+		ratio = 3
+
+		canny_image = cv2.Canny(cv_image, low_threshold, low_threshold*ratio)
+		
+		cv2.imshow('edges', canny_image)
+		cv2.waitKey(33)
+
 	# end in an interactive shell so we can look at the values
 	try:
 		import IPython
