@@ -1,4 +1,16 @@
 #!/bin/bash
+
+# The point of this script is to have the opencv build standalone instead of copied to the
+# various system paths. Here I have it located in ../opencv-2.4.3 (release build, GTK,
+# Python). This script sets the appropriate paths allowing for any call made afterward to
+# operate in an environment where these paths are defined.
+# 
+# Example:
+#    ./cv ipython intrinsic_calibration.py
+
+# Set environment paths
 export PYTHONPATH=$PYTHONPATH:../opencv-2.4.3/lib
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../opencv-2.4.3/lib
+
+# Execute whatever the subsequent command is
 $@
