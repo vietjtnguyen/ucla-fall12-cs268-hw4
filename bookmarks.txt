@@ -1,2 +1,3 @@
  * http://docs.opencv.org/doc/tutorials/calib3d/camera_calibration/camera_calibration.html
  * http://opencv.willowgarage.com/documentation/cpp/camera_calibration_and_3d_reconstruction.html
+ * http://stackoverflow.com/questions/10022568/opencv-2-3-camera-calibration
