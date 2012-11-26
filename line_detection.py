@@ -37,8 +37,8 @@ if __name__ == '__main__':
 	# regions of interest
 	# row  left    right   region
 	#      center  center  width
-	# 318  55      375     73
-	# 218  194     276     298
+	# 218  194     276     298/2
+	# 318  55      375     73/2
 
 	cv2.namedWindow('edges')
 
@@ -49,6 +49,14 @@ if __name__ == '__main__':
 		ratio = 3
 
 		canny_image = cv2.Canny(cv_image, low_threshold, low_threshold*ratio)
+		canny_image = cv2.cvtColor(canny_image, cv2.COLOR_GRAY2BGR)
+
+		for y in range(218, 318+50+10, 10):
+			width = int((120.0-36.0)*(y-218.0)/100.0)+36
+			left_center = int((55.0-194.0)*(y-218.0)/100.0)+194
+			right_center = int((375.0-276.0)*(y-218.0)/100.0)+276
+			cv2.line(canny_image, (left_center-width, y), (left_center+width, y), (0, 0, 255), 1, cv2.CV_AA)
+			cv2.line(canny_image, (right_center-width, y+1), (right_center+width, y+1), (0, 255, 0), 1, cv2.CV_AA)
 		
 		cv2.imshow('edges', canny_image)
 		cv2.waitKey(33)
