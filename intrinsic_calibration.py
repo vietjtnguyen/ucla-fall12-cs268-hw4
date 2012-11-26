@@ -49,42 +49,18 @@ def define_chessboard(cell_shape, cell_size):
 	corner_world_points = np.array(corner_world_points, dtype = np.float32)
 	return internal_corner_shape, corner_world_points
 
-def todo_name_this():
+def calibrate_camera_from_images(image_paths, image_size, cell_shape, cell_size):
 
-	# Viet Nguyen: Note that images 930 and 931 contain occlusions.
-	calibration_image_names = ['LDWS_calibrate/IMG_0068 {0:04}.bmp'.format(x) for x in range(1, 1157)]
-
-	image_size = (480, 640)
-
-	scale_and_focal_length_guess = (1.0e-2)**2
-	intrinsic_matrix = np.array(
-		[
-			[scale_and_focal_length_guess, 0, image_size[0]/2],
-			[0, scale_and_focal_length_guess, image_size[1]/2],
-			[0, 0, 1],
-		],
-		dtype = np.float32,
-	)
-	distortion_coefficients = np.zeros(5, dtype = np.float32)
-
-	internal_corner_shape, corner_world_points = \
-		define_chessboard(
-			(9, 9), # cell shape
-			48.0/1000.0, # cell size = 48 mm in meters
-		)
+	# define chessboard properties
+	internal_corner_shape, corner_world_points = define_chessboard(cell_shape, cell_size)
 
 	# initialize empty lists that will serve as the first two arguments for
 	# cv2.calibrateCamera
 	corner_world_point_sets = []
 	found_corner_sets = []
-	
-	# create a subset of the images that we'll actually use. this subset is basically
-	# num_of_images_in_subset images divided evenly in the calibration image sequence
-	num_of_images_in_subset = 36
-	calibration_image_names_subset = [calibration_image_names[x] for x in range(0, len(calibration_image_names), len(calibration_image_names)/num_of_images_in_subset)]
 
 	# walk through the subset of images gathering found chess board corners
-	for image_name in calibration_image_names_subset:
+	for image_name in image_paths:
 
 		# load the image
 		cv_image = cv2.imread(image_name)
@@ -108,7 +84,7 @@ def todo_name_this():
 			chessboard_was_found,
 		)
 		cv2.imshow('calib frame', cv_image)
-		cv2.waitKey(33) # assuming 30 fps
+		cv2.waitKey(1)
 
 		# if the chessboard was found, record it in the set that will be used by
 		# cv2.calibrateCamera
@@ -147,23 +123,26 @@ def todo_name_this():
 
 			# 2-tuple containing width and height of the calibration images
 			image_size,
-
-			# R^3x3 matrix containing the intrinsic camera matrix guess
-			#       [ f_x  0    o_x ]
-			#   K = [ 0    f_y  o_y ]
-			#       [ 0    0    1   ]
-			intrinsic_matrix,
-
-			# R^5 vector containing distortion coefficients
-			# see http://docs.opencv.org/doc/tutorials/calib3d/camera_calibration/camera_calibration.html
-			distortion_coefficients,
-
-			# flags set to use intrinsic matrix guess
-			# see http://opencv.willowgarage.com/documentation/python/calib3d_camera_calibration_and_3d_reconstruction.html#calibratecamera2
-			flags = cv2.CALIB_USE_INTRINSIC_GUESS,
 		)
 
-	#retval, intrinsic_matrix, distortion_coefficients, r_vecs, t_vecs = \
+	return calibrate_camera_return
+
+if __name__ == '__main__':
+
+	# Viet Nguyen: Note that images 930 and 931 contain occlusions.
+	calibration_image_paths = ['LDWS_calibrate/IMG_0068 {0:04}.bmp'.format(x) for x in range(1, 1157)]
+	
+	# create a subset of the images that we'll actually use. this subset is basically
+	# num_of_images_in_subset images divided evenly in the calibration image sequence
+	num_of_images_in_subset = 36
+	calibration_image_paths_subset = [calibration_image_paths[x] for x in range(0, len(calibration_image_paths), len(calibration_image_paths)/num_of_images_in_subset)]
+
+	image_size = (480, 640) # pixels
+	cell_shape = (9, 9) # cell shape
+	cell_size = 48.0/1000.0 # 48 mm in meters
+
+	calibrate_camera_return = calibrate_camera_from_images(calibration_image_paths_subset, image_size, cell_shape, cell_size)
+	reprojection_error, intrinsic_matrix, distortion_coefficients, r_vecs, t_vecs = calibrate_camera_return
 	print(calibrate_camera_return)
 
 	# end in an interactive shell so we can look at the values
@@ -173,5 +152,3 @@ def todo_name_this():
 	except Exception as e:
 		sys.exit()
 
-if __name__ == '__main__':
-	todo_name_this()
