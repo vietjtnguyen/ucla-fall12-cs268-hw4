@@ -45,19 +45,80 @@
         <ul></ul>
       </nav>
       <section>
-        <p>Just wanted to test out MathJax.</p>
+<p>Image formation refers to the process by which a three dimensional scene, abstracted as a collection of points, can be represented as two dimensional image.</p>
 
-<p style="font-size: 120%;">
+<h1>Pinhole Model</h1>
+
+<p>In the simplest lens model we have a single lens that focuses all the light radiating from a single point on an object in front of the camera onto a single point on the image plane. Using the lens as a reference frame, we denote the center of the lens as the optical center. In this reference frame we define \(+z\) to be forward along the optical axis, \(+x\) in the up direction, and \(+y\) completing the right-handed orthonormal coordinate system.</p>
+
+<p>The distance from the optical center to the focusing plane of the lens, where the image plane is, is known as the focal length. The focal length directly determines the field-of-view along with the image plane size.</p>
+
+<p>For our purposes, we simplify the camera to a pinhole model where all of the light passes through an infinitely small aperture. This model is, of course, unrealistic as an infinitely small aperture would let an infinitely small amount of light in. This model, however, allows us to assume an infinite depth of field and to ignore focusing.</p>
+
+<h1>
+
+<h1>Camera Calibration</h1>
+
+<div style="font-size: 120%;">
 \[
 K = \begin{bmatrix}
-f s_x &amp; s_\theta &amp; o_x \\
-0 &amp; f s_y &amp; o_y \\
-0 &amp; 0 &amp; 1
+f s_x & s_\theta & o_x \\
+0 & f s_y & o_y \\
+0 & 0 & 1
 \end{bmatrix}
 \]
-</p>
+</div>
 
-<p>Does it work?</p>
+<h1>Ideal Projection Model</h1>
+
+<div style="font-size: 120%;">
+\[
+\lambda x = K \Pi_0 X_= K \Pi_0 g P \\
+\Pi_0 = \begin{bmatrix}
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+\end{bmatrix}
+\quad , \quad
+g \in SE(3) \\
+\begin{eqnarray}
+\lambda \begin{bmatrix} x_1 \\ x_2 \\ 1 \end{bmatrix} &=&
+\begin{bmatrix}
+f s_x & s_\theta & o_x \\
+0 & f s_y & o_y \\
+0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+\end{bmatrix}
+\begin{bmatrix}
+X_1 \\ X_2 \\ X_3 \\ 1
+\end{bmatrix} \\
+\lambda \begin{bmatrix} x_1 \\ x_2 \\ 1 \end{bmatrix} 
+&=&
+\begin{bmatrix}
+f s_x & s_\theta & o_x \\
+0 & f s_y & o_y \\
+0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+\end{bmatrix}
+\begin{bmatrix}
+R & & T \\
+ & & \\
+0 & & 1 \\
+\end{bmatrix}
+\begin{bmatrix}
+P_1 \\ P_2 \\ P_3 \\ 1
+\end{bmatrix}
+\end{eqnarray}
+\]
+</div>
       </section>
       <footer>
         <p>Project maintained by <a href="https://github.com/vietjtnguyen">vietjtnguyen</a></p>
