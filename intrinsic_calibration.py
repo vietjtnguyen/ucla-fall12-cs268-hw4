@@ -1,30 +1,19 @@
 #!/usr/bin/python
 
+'''
+Copyright (c) 2012 Viet Nguyen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.'''
+
 import math
 import sys
 
 import cv2
 import numpy as np
-
-'''
-The outline as specified by http://docs.opencv.org/doc/tutorials/calib3d/camera_calibration/camera_calibration.html is as follows:
-
- 1. Read the settings.
- 2. Get next input, if it fails or we have enough of them then perform calibration.
- 3. Find the pattern in the current input.
- 4. Show state and result for the user, plus command line control of the application.
- 5. Show the distortion removal for the images too.
-
-Those steps are perhaps better read in pseudocode as follows:
-
-read_settings()
-while( input_is_available() or input_sufficient_for_calibration() ):
-	input = get_input()
-	pattern = find_pattern(input)
-	display(pattern)
-	calibration_results = calculate_calibration() #?
-display(calibration_results)
-'''
 
 def define_chessboard(cell_shape, cell_size):
 	'''
@@ -50,6 +39,25 @@ def define_chessboard(cell_shape, cell_size):
 	return internal_corner_shape, corner_world_points
 
 def calibrate_camera_from_images(image_paths, image_size, cell_shape, cell_size):
+	'''
+	Returns the result of cv2.calibrateCamera applied on the images listed in
+	the image_paths argument. The image_size must be specified as a 2-tuple containing
+	width and height (in that order) in pixels. It is assumed that all images are of
+	the same size. The cell_shape refers to the number of rows and columns on the
+	chessboard being used as a calibration target. This should be passed as a 2-tuple.
+	The cell_size is the size of each cell on the chessboard in whatever metric space
+	you desire (e.g. meters).
+
+	The return is a 5-tuple containing the following items: reprojection error (this is
+	actually uncertain, but appears to be), the intrinsic camera matrix as a R^3x3 matrix,
+	the distortion coefficients as a R^5 array, a list of rotation vectors corresponding to
+	each image (rotation vectors being R^3 vectors that can be used to obtain a rotation
+	matrix via Rodrigues' rotation formula), and a list of translate vectors corresponding
+	to each image (as R^3 vectors).
+
+	See also:
+	 * http://opencv.willowgarage.com/documentation/python/calib3d_camera_calibration_and_3d_reconstruction.html#calibratecamera2
+	'''
 
 	# define chessboard properties
 	internal_corner_shape, corner_world_points = define_chessboard(cell_shape, cell_size)
