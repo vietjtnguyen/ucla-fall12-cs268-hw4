@@ -49,7 +49,7 @@ def define_chessboard(cell_shape, cell_size):
 	corner_world_points = np.array(corner_world_points, dtype = np.float32)
 	return internal_corner_shape, corner_world_points
 
-def calibrate_camera_from_images(image_paths, image_size, cell_shape, cell_size):
+def calibrate_camera_from_images(image_paths, image_size, cell_shape, cell_size, show_images = True):
 	'''
 	Returns the result of cv2.calibrateCamera applied on the images listed in
 	the image_paths argument. The image_size must be specified as a 2-tuple containing
@@ -57,7 +57,9 @@ def calibrate_camera_from_images(image_paths, image_size, cell_shape, cell_size)
 	the same size. The cell_shape refers to the number of rows and columns on the
 	chessboard being used as a calibration target. This should be passed as a 2-tuple.
 	The cell_size is the size of each cell on the chessboard in whatever metric space
-	you desire (e.g. meters).
+	you desire (e.g. meters). The function also takes an optional keyword parameter named
+	show_images which defaults to True. If set to false, the chessboard find results will
+	not be displayed (no windows will be created).
 
 	The return is a 5-tuple containing the following items: reprojection error (this is
 	actually uncertain, but appears to be), the intrinsic camera matrix as a R^3x3 matrix,
@@ -95,15 +97,16 @@ def calibrate_camera_from_images(image_paths, image_size, cell_shape, cell_size)
 		chessboard_was_found, found_corners = chessboard_result
 
 		# display the found corners
-		cv2.namedWindow('calib frame')
-		cv2.drawChessboardCorners(
-			cv_image,
-			internal_corner_shape,
-			found_corners,
-			chessboard_was_found,
-		)
-		cv2.imshow('calib frame', cv_image)
-		cv2.waitKey(1)
+		if show_images:
+			cv2.namedWindow('calib frame')
+			cv2.drawChessboardCorners(
+				cv_image,
+				internal_corner_shape,
+				found_corners,
+				chessboard_was_found,
+			)
+			cv2.imshow('calib frame', cv_image)
+			cv2.waitKey(1)
 
 		# if the chessboard was found, record it in the set that will be used by
 		# cv2.calibrateCamera
@@ -146,7 +149,15 @@ def calibrate_camera_from_images(image_paths, image_size, cell_shape, cell_size)
 
 	return calibrate_camera_return
 
-if __name__ == '__main__':
+def hw4_calibration(show_images = True):
+	'''
+	Performs the camera calibration specifically for homework 4 and returns a 2-tuple
+	containing the intrinsic calibration matrix and the distortion coefficients.
+
+	The function also takes an optional keyword parameter named show_images which defaults
+	to True. If set to false, the chessboard find results will not be displayed (no
+	windows will be created).
+	'''
 
 	# Viet Nguyen: Note that images 930 and 931 contain occlusions.
 	calibration_image_paths = ['LDWS_calibrate/IMG_0068 {0:04}.bmp'.format(x) for x in range(1, 1157)]
@@ -160,9 +171,20 @@ if __name__ == '__main__':
 	cell_shape = (9, 9) # cell shape
 	cell_size = 48.0/1000.0 # 48 mm in meters
 
-	calibrate_camera_return = calibrate_camera_from_images(calibration_image_paths_subset, image_size, cell_shape, cell_size)
+	calibrate_camera_return = calibrate_camera_from_images(calibration_image_paths_subset, image_size, cell_shape, cell_size, show_images)
 	reprojection_error, intrinsic_matrix, distortion_coefficients, r_vecs, t_vecs = calibrate_camera_return
-	print(calibrate_camera_return)
+
+	return intrinsic_matrix, distortion_coefficients
+
+if __name__ == '__main__':
+
+	intrinsic_matrix, distortion_coefficients = hw4_calibration()
+
+	print('intrinsic_matrix:')
+	print(intrinsic_matrix)
+	print('')
+	print('distortion_coefficients:')
+	print(distortion_coefficients)
 
 	# end in an interactive shell so we can look at the values
 	try:
