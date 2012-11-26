@@ -1,0 +1,4 @@
+#!/bin/bash
+export PYTHONPATH=$PYTHONPATH:../opencv-2.4.3/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../opencv-2.4.3/lib
+$@
