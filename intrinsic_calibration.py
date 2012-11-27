@@ -49,7 +49,7 @@ def define_chessboard(cell_shape, cell_size):
 	corner_world_points = np.array(corner_world_points, dtype = np.float32)
 	return internal_corner_shape, corner_world_points
 
-def calibrate_camera_from_images(image_paths, image_size, cell_shape, cell_size, show_images = True):
+def calibrate_camera_from_images(image_paths, image_size, cell_shape, cell_size, show_images = True, image_mod = lambda x: x):
 	'''
 	Returns the result of cv2.calibrateCamera applied on the images listed in
 	the image_paths argument. The image_size must be specified as a 2-tuple containing
@@ -85,6 +85,7 @@ def calibrate_camera_from_images(image_paths, image_size, cell_shape, cell_size,
 
 		# load the image
 		cv_image = cv2.imread(image_path)
+		cv_image = image_mod(cv_image)
 
 		# find the chessboard corners
 		chessboard_result = cv2.findChessboardCorners(
@@ -173,7 +174,12 @@ def hw4_calibration(show_images = True):
 	cell_shape = (9, 9) # cell shape
 	cell_size = 48.0/1000.0 # 48 mm in meters
 
-	calibrate_camera_return = calibrate_camera_from_images(calibration_image_paths_subset, image_size, cell_shape, cell_size, show_images)
+	def rotate_90_ccw(cv_image):
+		temp_image = cv2.transpose(cv_image)
+		temp_image = cv2.flip(temp_image, 0)
+		return temp_image
+
+	calibrate_camera_return = calibrate_camera_from_images(calibration_image_paths_subset, image_size, cell_shape, cell_size, show_images, image_mod = rotate_90_ccw)
 	reprojection_error, intrinsic_matrix, distortion_coefficients, r_vecs, t_vecs = calibrate_camera_return
 
 	return intrinsic_matrix, distortion_coefficients
