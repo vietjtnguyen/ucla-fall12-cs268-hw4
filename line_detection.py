@@ -75,21 +75,55 @@ def define_lines_of_interest():
 	
 	return left_lines_of_interest, right_lines_of_interest
 
+def find_lane_points(canny_image, lines_of_interest, lane):
+	'''
+	TODO DOCUMENTATION
+	'''
+
+	assert(lane == 'left' or lane == 'right')
+
+	if lane == 'left':
+		direction = -1
+		start_point_name = 'right_point'
+		end_point_name = 'left_point'
+	elif lane == 'right':
+		direction = 1
+		start_point_name = 'left_point'
+		end_point_name = 'right_point'
+	
+	print(lane)
+	print(start_point_name)
+	print(end_point_name)
+	print(direction)
+
+	lane_points = []
+
+	for line_of_interest in lines_of_interest:
+		start_point = getattr(line_of_interest, start_point_name)
+		end_point = getattr(line_of_interest, end_point_name)
+
+		x, y = start_point
+
+		while( x * direction <= end_point[0] * direction ):
+			intensity_at_point = canny_image[y][x]
+			if intensity_at_point == 255:
+				lane_points.append((x, y))
+				break
+			x += direction
+
+	return lane_points
+
 if __name__ == '__main__':
 
 	image_paths = ['LDWS_test/LDWS_test_data {0:03}.bmp'.format(x) for x in range(1, 609)]
 
 	intrinsic_matrix, distortion_coefficients = intrinsic_calibration.hw4_calibration(False)
 
-	# regions of interest
-	# row  left    right   region
-	#      center  center  width
-	# 218  194     276     298/2
-	# 318  55      375     73/2
-
 	left_lines_of_interest, right_lines_of_interest = define_lines_of_interest()
 
 	cv2.namedWindow('edges')
+
+	#image_paths = image_paths[0:1]
 
 	for image_path in image_paths:
 		cv_image = cv2.imread(image_path)
@@ -98,6 +132,10 @@ if __name__ == '__main__':
 		ratio = 3
 
 		canny_image = cv2.Canny(cv_image, low_threshold, low_threshold*ratio)
+
+		left_lane_points = find_lane_points(canny_image, left_lines_of_interest, 'left')
+		right_lane_points = find_lane_points(canny_image, right_lines_of_interest, 'right')
+		
 		canny_image = cv2.cvtColor(canny_image, cv2.COLOR_GRAY2BGR)
 
 		for line_of_interest in left_lines_of_interest:
@@ -105,6 +143,9 @@ if __name__ == '__main__':
 
 		for line_of_interest in right_lines_of_interest:
 			cv2.line(canny_image, line_of_interest.left_point, line_of_interest.right_point, (255, 0, 0), 1, cv2.CV_AA)
+
+		for point in left_lane_points + right_lane_points:
+			cv2.circle(canny_image, point, 5, (0, 255, 0))
 		
 		cv2.imshow('edges', canny_image)
 		cv2.waitKey(1)
