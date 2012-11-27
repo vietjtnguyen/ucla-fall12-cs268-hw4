@@ -159,7 +159,9 @@ def hw4_calibration(show_images = True):
 	windows will be created).
 	'''
 
-	# Viet Nguyen: Note that images 930 and 931 contain occlusions.
+	# note that images 930 and 931 contain occlusions.
+	# TODO: should these images be rotated so that they're landscape to match the test
+	# footage? it would make it easier...
 	calibration_image_paths = ['LDWS_calibrate/IMG_0068 {0:04}.bmp'.format(x) for x in range(1, 1157)]
 	
 	# create a subset of the images that we'll actually use. this subset is basically
