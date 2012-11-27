@@ -91,11 +91,6 @@ def find_lane_points(canny_image, lines_of_interest, lane):
 		start_point_name = 'left_point'
 		end_point_name = 'right_point'
 	
-	print(lane)
-	print(start_point_name)
-	print(end_point_name)
-	print(direction)
-
 	lane_points = []
 
 	for line_of_interest in lines_of_interest:
