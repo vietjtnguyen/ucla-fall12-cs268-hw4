@@ -87,7 +87,7 @@ if __name__ == '__main__':
 	# 218  194     276     298/2
 	# 318  55      375     73/2
 
-	left_interest, right_interest = define_lines_of_interest()
+	left_lines_of_interest, right_lines_of_interest = define_lines_of_interest()
 
 	cv2.namedWindow('edges')
 
@@ -100,14 +100,14 @@ if __name__ == '__main__':
 		canny_image = cv2.Canny(cv_image, low_threshold, low_threshold*ratio)
 		canny_image = cv2.cvtColor(canny_image, cv2.COLOR_GRAY2BGR)
 
-		for interest in left_interest:
-			cv2.line(canny_image, interest.left_point, interest.right_point, (0, 0, 255), 1, cv2.CV_AA)
+		for line_of_interest in left_lines_of_interest:
+			cv2.line(canny_image, line_of_interest.left_point, line_of_interest.right_point, (0, 0, 255), 1, cv2.CV_AA)
 
-		for interest in right_interest:
-			cv2.line(canny_image, interest.left_point, interest.right_point, (255, 0, 0), 1, cv2.CV_AA)
+		for line_of_interest in right_lines_of_interest:
+			cv2.line(canny_image, line_of_interest.left_point, line_of_interest.right_point, (255, 0, 0), 1, cv2.CV_AA)
 		
 		cv2.imshow('edges', canny_image)
-		cv2.waitKey(33)
+		cv2.waitKey(1)
 
 	# end in an interactive shell so we can look at the values
 	try:
