@@ -29,6 +29,9 @@ import numpy as np
 
 import intrinsic_calibration
 
+def colvec2tuple(colvec):
+	return (colvec[0][0], colvec[1][0])
+
 class LineOfInterest():
 	'''
 	TODO DOCUMENTATION
@@ -157,12 +160,29 @@ def find_line(points):
 	
 	return best_line
 
-if __name__ == '__main__':
+def find_intersection_of_two_lines(line_a, line_b):
+	origin_a, unit_dir_a = line_a
+	origin_b, unit_dir_b = line_b
 
+	x1, y1 = origin_a[0][0], origin_a[1][0]
+	a1, b1 = unit_dir_a[0][0], unit_dir_a[1][0]
+
+	x2, y2 = origin_b[0][0], origin_b[1][0]
+	a2, b2 = unit_dir_b[0][0], unit_dir_b[1][0]
+
+	# parallel lines
+	if a1*b2 == a2*b1:
+		return None
+	
+	t2 = (b1*(x2-x1)-a1*(y2-y1))/(a1*b2-a2*b1)
+
+	return origin_b + unit_dir_b * t2
+
+def hw4_line_detection():
 	image_paths = ['LDWS_test/LDWS_test_data {0:03}.bmp'.format(x) for x in range(1, 609)]
 
 	# commented out for now since it isn't being used yet.
-	#intrinsic_matrix, distortion_coefficients = intrinsic_calibration.hw4_calibration(False)
+	intrinsic_matrix, distortion_coefficients = intrinsic_calibration.hw4_calibration(False)
 
 	left_lines_of_interest, right_lines_of_interest = define_lines_of_interest()
 
@@ -194,26 +214,56 @@ if __name__ == '__main__':
 		for point in left_lane_points + right_lane_points:
 			cv2.circle(display_image, point, 5, (0, 255, 0))
 
-		img_region = (0, 0, 640, 480)
-		colvec_to_tuple = lambda x: (x[0][0], x[1][0])
-
 		left_lane_line = find_line(left_lane_points)
 		right_lane_line = find_line(right_lane_points)
 
 		assert(left_lane_line != None)
 		assert(right_lane_line != None)
 
-		def draw_line_def(image, img_region, line, color):
-			origin, unit_dir = line
-			over_line = (colvec_to_tuple(origin+unit_dir*640.0), colvec_to_tuple(origin-unit_dir*640.0))
-			over_line = cv2.clipLine(img_region, over_line[0], over_line[1])[1:]
-			cv2.line(image, over_line[0], over_line[1], color, 1, cv2.CV_AA)
+		vanishing_point = find_intersection_of_two_lines(left_lane_line, right_lane_line)
+		cv2.circle(display_image, (vanishing_point[0][0], vanishing_point[1][0]), 10, (255, 255, 255))
+
+		bottom_image_line = (np.matrix([[0],[480]]), np.matrix([[1],[0]]))
+		bottom_left = find_intersection_of_two_lines(left_lane_line, bottom_image_line)
+		bottom_right = find_intersection_of_two_lines(right_lane_line, bottom_image_line)
+		cv2.circle(display_image, (bottom_left[0][0], bottom_left[1][0]), 10, (0, 0, 255))
+		cv2.circle(display_image, (bottom_right[0][0], bottom_right[1][0]), 10, (255, 0, 0))
+
+		cv2.line(display_image, colvec2tuple(vanishing_point), colvec2tuple(bottom_left), (255, 0, 255), 1, cv2.CV_AA)
+		cv2.line(display_image, colvec2tuple(vanishing_point), colvec2tuple(bottom_right), (255, 0, 255), 1, cv2.CV_AA)
+
+		object_points = np.array([
+			[-1.6, 0, 0],
+			[1.6, 0, 0],
+			[-1.6, np.inf, 0],
+			[1.6, np.inf, 0],
+		])
+
+		image_points = np.array([
+			bottom_left.T.A[0],
+			bottom_right.T.A[0],
+			vanishing_point.T.A[0],
+			vanishing_point.T.A[0],
+		])
+
+		print(object_points)
+		print(image_points)
 		
-		draw_line_def(display_image, (0, 0, 640, 480), left_lane_line, (255, 0, 255))
-		draw_line_def(display_image, (0, 0, 640, 480), right_lane_line, (255, 0, 255))
+		solve_pnp_results = cv2.solvePnP(
+			object_points,
+			image_points,
+			intrinsic_matrix,
+			distortion_coefficients,
+		)
+
+		print(solve_pnp_results)
 
 		cv2.imshow('edges', display_image)
 		cv2.waitKey(1)
+
+if __name__ == '__main__':
+
+	hw4_line_detection()
 
 	# end in an interactive shell so we can look at the values
 	try:
@@ -221,4 +271,4 @@ if __name__ == '__main__':
 		IPython.embed()
 	except Exception as e:
 		sys.exit()
-
+	
