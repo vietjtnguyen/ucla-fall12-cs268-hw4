@@ -169,6 +169,7 @@ if __name__ == '__main__':
 	cv2.namedWindow('edges')
 
 	#image_paths = image_paths[0:1]
+	#image_paths = ['LDWS_test/LDWS_test_data 155.bmp']
 
 	for image_path in image_paths:
 		cv_image = cv2.imread(image_path)
@@ -181,16 +182,17 @@ if __name__ == '__main__':
 		left_lane_points = find_lane_points(canny_image, left_lines_of_interest, 'left')
 		right_lane_points = find_lane_points(canny_image, right_lines_of_interest, 'right')
 		
-		canny_image = cv2.cvtColor(canny_image, cv2.COLOR_GRAY2BGR)
+		#display_image = cv2.cvtColor(canny_image, cv2.COLOR_GRAY2BGR)
+		display_image = cv_image
 
 		for line_of_interest in left_lines_of_interest:
-			cv2.line(canny_image, line_of_interest.left_point, line_of_interest.right_point, (0, 0, 255), 1, cv2.CV_AA)
+			cv2.line(display_image, line_of_interest.left_point, line_of_interest.right_point, (0, 0, 255), 1, cv2.CV_AA)
 
 		for line_of_interest in right_lines_of_interest:
-			cv2.line(canny_image, line_of_interest.left_point, line_of_interest.right_point, (255, 0, 0), 1, cv2.CV_AA)
+			cv2.line(display_image, line_of_interest.left_point, line_of_interest.right_point, (255, 0, 0), 1, cv2.CV_AA)
 
 		for point in left_lane_points + right_lane_points:
-			cv2.circle(canny_image, point, 5, (0, 255, 0))
+			cv2.circle(display_image, point, 5, (0, 255, 0))
 
 		img_region = (0, 0, 640, 480)
 		colvec_to_tuple = lambda x: (x[0][0], x[1][0])
@@ -198,16 +200,19 @@ if __name__ == '__main__':
 		left_lane_line = find_line(left_lane_points)
 		right_lane_line = find_line(right_lane_points)
 
+		assert(left_lane_line != None)
+		assert(right_lane_line != None)
+
 		def draw_line_def(image, img_region, line, color):
 			origin, unit_dir = line
 			over_line = (colvec_to_tuple(origin+unit_dir*640.0), colvec_to_tuple(origin-unit_dir*640.0))
 			over_line = cv2.clipLine(img_region, over_line[0], over_line[1])[1:]
 			cv2.line(image, over_line[0], over_line[1], color, 1, cv2.CV_AA)
 		
-		draw_line_def(canny_image, (0, 0, 640, 480), left_lane_line, (255, 0, 255))
-		draw_line_def(canny_image, (0, 0, 640, 480), right_lane_line, (255, 0, 255))
+		draw_line_def(display_image, (0, 0, 640, 480), left_lane_line, (255, 0, 255))
+		draw_line_def(display_image, (0, 0, 640, 480), right_lane_line, (255, 0, 255))
 
-		cv2.imshow('edges', canny_image)
+		cv2.imshow('edges', display_image)
 		cv2.waitKey(1)
 
 	# end in an interactive shell so we can look at the values
