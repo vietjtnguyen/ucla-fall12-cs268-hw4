@@ -161,6 +161,10 @@ def find_line(points):
 	return best_line
 
 def find_intersection_of_two_lines(line_a, line_b):
+	'''
+	TODO DOCUMENTATION
+	'''
+
 	origin_a, unit_dir_a = line_a
 	origin_b, unit_dir_b = line_b
 
@@ -179,6 +183,10 @@ def find_intersection_of_two_lines(line_a, line_b):
 	return origin_b + unit_dir_b * t2
 
 def hw4_line_detection():
+	'''
+	TODO DOCUMENTATION
+	'''
+
 	image_paths = ['LDWS_test/LDWS_test_data {0:03}.bmp'.format(x) for x in range(1, 609)]
 
 	# commented out for now since it isn't being used yet.
@@ -229,25 +237,28 @@ def hw4_line_detection():
 		cv2.circle(display_image, (bottom_left[0][0], bottom_left[1][0]), 10, (0, 0, 255))
 		cv2.circle(display_image, (bottom_right[0][0], bottom_right[1][0]), 10, (255, 0, 0))
 
+		almost_bottom_image_line = (np.matrix([[0],[480-150]]), np.matrix([[1],[0]]))
+		almost_bottom_left = find_intersection_of_two_lines(left_lane_line, almost_bottom_image_line)
+		almost_bottom_right = find_intersection_of_two_lines(right_lane_line, almost_bottom_image_line)
+		cv2.circle(display_image, (almost_bottom_left[0][0], almost_bottom_left[1][0]), 10, (0, 0, 255))
+		cv2.circle(display_image, (almost_bottom_right[0][0], almost_bottom_right[1][0]), 10, (255, 0, 0))
+
 		cv2.line(display_image, colvec2tuple(vanishing_point), colvec2tuple(bottom_left), (255, 0, 255), 1, cv2.CV_AA)
 		cv2.line(display_image, colvec2tuple(vanishing_point), colvec2tuple(bottom_right), (255, 0, 255), 1, cv2.CV_AA)
 
 		object_points = np.array([
 			[-1.6, 0, 0],
 			[1.6, 0, 0],
-			[-1.6, np.inf, 0],
-			[1.6, np.inf, 0],
+			[-1.6, 4.0, 0],
+			[1.6, 4.0, 0],
 		])
 
 		image_points = np.array([
 			bottom_left.T.A[0],
 			bottom_right.T.A[0],
-			vanishing_point.T.A[0],
-			vanishing_point.T.A[0],
+			almost_bottom_left.T.A[0],
+			almost_bottom_right.T.A[0],
 		])
-
-		print(object_points)
-		print(image_points)
 		
 		solve_pnp_results = cv2.solvePnP(
 			object_points,
@@ -256,7 +267,15 @@ def hw4_line_detection():
 			distortion_coefficients,
 		)
 
-		print(solve_pnp_results)
+		pnp_success, rotation_omega, translate = solve_pnp_results
+		horizontal_drift = -translate[0][0]
+		print(horizontal_drift)
+		
+		cv2.line(display_image, (320-80, 10), (320+80, 10), (0, 0, 0), 1, cv2.CV_AA)
+		cv2.line(display_image, (320-80, 10), (320-80, 50), (0, 0, 0), 1, cv2.CV_AA)
+		cv2.line(display_image, (320+80, 10), (320+80, 50), (0, 0, 0), 1, cv2.CV_AA)
+		cv2.line(display_image, (320-80, 50), (320+80, 50), (0, 0, 0), 1, cv2.CV_AA)
+		cv2.line(display_image, (320+int(40*horizontal_drift/0.4), 30), (320+int(40*horizontal_drift/0.4), 50), (0, 0, 0), 1, cv2.CV_AA)
 
 		cv2.imshow('edges', display_image)
 		cv2.waitKey(1)
