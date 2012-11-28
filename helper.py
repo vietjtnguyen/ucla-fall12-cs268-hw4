@@ -16,3 +16,15 @@ def tuple2colvec(colvec):
 	number of rows is equal to n.
 	'''
 	return np.matrix([[x] for x in colvec])
+
+def tuple2inttuple(v):
+	'''
+	Converts each item in a tuple to an integer.
+	'''
+	return tuple(map(int, v))
+
+def tuple2floattuple(v):
+	'''
+	Converts each item in a tuple to a float.
+	'''
+	return tuple(map(float, v))

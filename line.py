@@ -20,6 +20,8 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 DEALINGS IN THE SOFTWARE.
 '''
 
+import random
+
 import numpy as np
 
 from helper import *
@@ -105,16 +107,19 @@ class Line():
 		# return the intersection point composed from the second parameter
 		return origin_b + unit_dir_b * t2
 
-def ransac_line(points, num_of_iterations = 100, tolerance = 4.0):
+def ransac_line2d(points, num_of_iterations = 100, tolerance = 4.0):
 	'''
-	TODO DOCUMENTATION
+	Fits a line model to a set of points using random sample consensus (RANSAC). The
+	points are passed in as a list of 2-tuples. The return is a Line object. Knobs
+	include num_of_iterations which defaults to 100 and tolerance for voting which
+	defaults to 4.0.
 	'''
 	# create a 'bag of points' that is a list of the points as column vectors
 	bag_of_points = [tuple2colvec(point) for point in points]
 
 	# initialize our best model
-	best_line_score = 0
-	best_line = None
+	best_model_score = 0
+	best_model = None
 
 	# iterate num_of_iterations times
 	iteration_count = 0
@@ -126,12 +131,12 @@ def ransac_line(points, num_of_iterations = 100, tolerance = 4.0):
 		point_a = bag_of_points[0]
 		point_b = bag_of_points[1]
 
-		# define the line
+		# define the model
 		origin = point_a
 		unit_dir = (point_b - point_a)
 		unit_dir = unit_dir / np.linalg.norm(unit_dir)
 
-		# score this line
+		# score this model
 		score = 0
 
 		# for each point other than the two used for the model
@@ -154,12 +159,12 @@ def ransac_line(points, num_of_iterations = 100, tolerance = 4.0):
 			if dist_from_line_to_point <= tolerance:
 				score += (tolerance - dist_from_line_to_point)
 
-		# compare this to the best line so far, if it is better then set this model to
-		# the best line
-		if score > best_line_score:
-			best_line = (origin, unit_dir)
-			best_line_score = score
+		# compare this to the best model so far, if it is better then set this model to
+		# the best model
+		if score > best_model_score:
+			best_model = Line(origin, unit_dir)
+			best_model_score = score
 
 		iteration_count += 1
 	
-	return best_line
+	return best_model

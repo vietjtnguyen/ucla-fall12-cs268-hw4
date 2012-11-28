@@ -27,62 +27,79 @@ import sys
 import cv2
 import numpy as np
 
+from helper import colvec2tuple, tuple2colvec, tuple2inttuple
 import intrinsic_calibration
+from line import Line, ransac_line2d
 
-def colvec2tuple(colvec):
-	return (colvec[0][0], colvec[1][0])
-
-class LineOfInterest():
+class LaneSearchStrip():
 	'''
-	TODO DOCUMENTATION
+	This class represents a single-pixel tall horizontal line that acts as the window
+	of search for lane edges, such as from a Canny edge detector.
 	'''
 
 	def __init__(self, left_point, width):
 		'''
-		TODO DOCUMENTATION
+		Creates a lane search strip from the left-most point as a 2-tuple and the width.
 		'''
 		self.left_point = left_point
 		self.width = width
 		self.right_point = (self.left_point[0]+width, self.left_point[1])
 	
 	def __str__(self):
-		return str(self.left_point)+', '+self.width
-
-def define_lines_of_interest():
-	'''
-	TODO DOCUMENTATION
-	'''
-	img_region = (0, 0, 640, 480)
-	vertical_interval = (218, 368)
-	vertical_range = vertical_interval[1]-vertical_interval[0]
-	vertical_step = 10
-	width_interval = (36, 120)
-	width_range = width_interval[1]-width_interval[0]
-	left_center_interval = (205, -15)
-	left_center_range = left_center_interval[1]-left_center_interval[0]
-	right_center_interval = (280, 440)
-	right_center_range = right_center_interval[1]-right_center_interval[0]
-
-	left_lines_of_interest = []
-	right_lines_of_interest = []
-
-	for y in range(vertical_interval[0], vertical_interval[1]+vertical_step, vertical_step):
-		width = int(width_range*(y-vertical_interval[0])/vertical_range)+width_interval[0]
-		left_center = int(left_center_range*(y-vertical_interval[0])/vertical_range)+left_center_interval[0]
-		right_center = int(right_center_range*(y-vertical_interval[0])/vertical_range)+right_center_interval[0]
-		
-
-		left_line = ((left_center-width, y), (left_center+width, y))
-		left_line = cv2.clipLine(img_region, left_line[0], left_line[1])[1:] # assumes lines always overlap image region, otherwise the function returns False and the original lines
-		left_lines_of_interest.append(LineOfInterest(left_line[0], left_line[1][0]-left_line[0][0]))
-
-		right_line = ((right_center-width, y), (right_center+width, y))
-		right_line = cv2.clipLine(img_region, right_line[0], right_line[1])[1:] # assumes lines always overlap image region, otherwise the function returns False and the original lines
-		right_lines_of_interest.append(LineOfInterest(right_line[0], right_line[1][0]-right_line[0][0]))
+		'''
+		Returns the string representation.
+		'''
+		return '{0!r} to {1!r}'.format(self.left_point, self.right_point)
 	
-	return left_lines_of_interest, right_lines_of_interest
+	def __repr__(self):
+		'''
+		Returns a Python representation.
+		'''
+		return 'LaneSearchStrip({0!r},{1!r})'.format(self.left_point, self.width)
 
-def find_lane_points(canny_image, lines_of_interest, lane):
+def create_search_strip_set(vertical_interval, vertical_step, width_interval, center_interval, clip_region):
+	'''
+	Returns a list of lane search strips (as LaneSearchStrip objects). There are five
+	arguments. The first, vertical_interval, is a 2-tuple containing the vertical pixel
+	range of the search strip set. Note the order as the other arguments are linearly
+	interpolated from this range. The second argument, vertical_step, is the vertical
+	pixel separation between each search strip. The width_interval and center_interval,
+	arguments three and four respectively, define what the width of the strip will be at
+	the start of the vertical interval and what the center of the strip will be (as a
+	2-tuple) at the start of the vertical interval. The fifth argument, clip_region,
+	is a 4-tuple defining the bounds of the image as (left, top, right, bottom) which is
+	used to clip the search strips into the image.
+	'''
+	# define some convenient local variables
+	vertical_range = vertical_interval[1]-vertical_interval[0]
+	width_range = width_interval[1]-width_interval[0]
+	center_range = center_interval[1]-center_interval[0]
+
+	# initialize the set of search strips
+	search_strips = []
+
+	# walk through each vertical step
+	for y in range(vertical_interval[0], vertical_interval[1]+vertical_step, vertical_step):
+		# determine the width and center of the strip using linear interpolation
+		width = int(width_range*(y-vertical_interval[0])/vertical_range)+width_interval[0]
+		center = int(center_range*(y-vertical_interval[0])/vertical_range)+center_interval[0]
+
+		# define the strip as a segment
+		segment = ((center-width, y), (center+width, y))
+
+		# clip the segment to the image
+		segment_is_in_image, left_point, right_point = cv2.clipLine(clip_region, segment[0], segment[1])
+
+		# if the segment isn't in the image, don't add it
+		if not segment_is_in_image:
+			continue
+
+		# add the clipped segment to the image
+		search_strips.append(LaneSearchStrip(left_point, right_point[0]-left_point[0]))
+	
+	return search_strips
+
+def find_lane_points(canny_image, search_strips, lane):
 	'''
 	TODO DOCUMENTATION
 	'''
@@ -100,9 +117,9 @@ def find_lane_points(canny_image, lines_of_interest, lane):
 	
 	lane_points = []
 
-	for line_of_interest in lines_of_interest:
-		start_point = getattr(line_of_interest, start_point_name)
-		end_point = getattr(line_of_interest, end_point_name)
+	for search_strip in search_strips:
+		start_point = getattr(search_strip, start_point_name)
+		end_point = getattr(search_strip, end_point_name)
 
 		x, y = start_point
 
@@ -115,72 +132,30 @@ def find_lane_points(canny_image, lines_of_interest, lane):
 
 	return lane_points
 
-def find_line(points):
+def define_hw4_search_strips():
 	'''
-	TODO DOCUMENTATION
+	Returns a 2-tuple containing the list of left lane search strips and the lits of
+	right lane search strips specific to homework 4.
 	'''
+	vertical_interval = (218, 368)
+	vertical_step = 10
+	width_interval = (36, 120)
+	left_center_interval = (205, -15)
+	right_center_interval = (280, 440)
+	clip_region = (0, 0, 640, 480)
 
-	num_of_iterations = 100
-	tolerance = 4.0 # pixels
+	left_search_strips = create_search_strip_set(
+		vertical_interval, vertical_step,
+		width_interval, left_center_interval,
+		clip_region,
+	)
+	right_search_strips = create_search_strip_set(
+		vertical_interval, vertical_step,
+		width_interval, right_center_interval,
+		clip_region,
+	)
 
-	bag_of_points = [np.matrix([[x, y]]).T for x, y in points]
-
-	best_line_score = 0
-	best_line = None
-
-	iteration_count = 0
-	while iteration_count < num_of_iterations:
-		
-		# select two random points
-		random.shuffle(bag_of_points)
-		point_a = bag_of_points[0]
-		point_b = bag_of_points[1]
-
-		# define the line
-		origin = point_a
-		unit_dir = (point_b - point_a)
-		unit_dir = unit_dir / np.linalg.norm(unit_dir)
-
-		# score this line
-		score = 0
-		for point in bag_of_points[2:]:
-			origin_to_point = point - origin
-			proj_on_line = unit_dir * np.vdot(unit_dir.A, origin_to_point.A)
-			line_to_point = origin_to_point - proj_on_line
-			dist_from_line_to_point = np.linalg.norm(line_to_point)
-			if dist_from_line_to_point <= tolerance:
-				score += (tolerance - dist_from_line_to_point)
-
-		# compare this to the best line so far
-		if score > best_line_score:
-			best_line = (origin, unit_dir)
-			best_line_score = score
-
-		iteration_count += 1
-	
-	return best_line
-
-def find_intersection_of_two_lines(line_a, line_b):
-	'''
-	TODO DOCUMENTATION
-	'''
-
-	origin_a, unit_dir_a = line_a
-	origin_b, unit_dir_b = line_b
-
-	x1, y1 = origin_a[0][0], origin_a[1][0]
-	a1, b1 = unit_dir_a[0][0], unit_dir_a[1][0]
-
-	x2, y2 = origin_b[0][0], origin_b[1][0]
-	a2, b2 = unit_dir_b[0][0], unit_dir_b[1][0]
-
-	# parallel lines
-	if a1*b2 == a2*b1:
-		return None
-	
-	t2 = (b1*(x2-x1)-a1*(y2-y1))/(a1*b2-a2*b1)
-
-	return origin_b + unit_dir_b * t2
+	return left_search_strips, right_search_strips
 
 def hw4_line_detection():
 	'''
@@ -189,10 +164,9 @@ def hw4_line_detection():
 
 	image_paths = ['LDWS_test/LDWS_test_data {0:03}.bmp'.format(x) for x in range(1, 609)]
 
-	# commented out for now since it isn't being used yet.
 	intrinsic_matrix, distortion_coefficients = intrinsic_calibration.hw4_calibration(False)
 
-	left_lines_of_interest, right_lines_of_interest = define_lines_of_interest()
+	left_search_strips, right_search_strips = define_hw4_search_strips()
 
 	cv2.namedWindow('edges')
 
@@ -207,44 +181,50 @@ def hw4_line_detection():
 
 		canny_image = cv2.Canny(cv_image, low_threshold, low_threshold*ratio)
 
-		left_lane_points = find_lane_points(canny_image, left_lines_of_interest, 'left')
-		right_lane_points = find_lane_points(canny_image, right_lines_of_interest, 'right')
+		left_lane_points = find_lane_points(canny_image, left_search_strips, 'left')
+		right_lane_points = find_lane_points(canny_image, right_search_strips, 'right')
 		
 		#display_image = cv2.cvtColor(canny_image, cv2.COLOR_GRAY2BGR)
 		display_image = cv_image
 
-		for line_of_interest in left_lines_of_interest:
-			cv2.line(display_image, line_of_interest.left_point, line_of_interest.right_point, (0, 0, 255), 1, cv2.CV_AA)
+		for search_strip in left_search_strips:
+			cv2.line(display_image, search_strip.left_point, search_strip.right_point, (0, 0, 255), 1, cv2.CV_AA)
 
-		for line_of_interest in right_lines_of_interest:
-			cv2.line(display_image, line_of_interest.left_point, line_of_interest.right_point, (255, 0, 0), 1, cv2.CV_AA)
+		for search_strip in right_search_strips:
+			cv2.line(display_image, search_strip.left_point, search_strip.right_point, (255, 0, 0), 1, cv2.CV_AA)
 
 		for point in left_lane_points + right_lane_points:
 			cv2.circle(display_image, point, 5, (0, 255, 0))
 
-		left_lane_line = find_line(left_lane_points)
-		right_lane_line = find_line(right_lane_points)
+		left_lane_line = ransac_line2d(left_lane_points)
+		right_lane_line = ransac_line2d(right_lane_points)
 
-		assert(left_lane_line != None)
-		assert(right_lane_line != None)
+		if left_lane_line == None or right_lane_line == None:
+			print('WARNING: Could not find lane lines in image "{0}"!'.format(image_path))
+			continue
 
-		vanishing_point = find_intersection_of_two_lines(left_lane_line, right_lane_line)
-		cv2.circle(display_image, (vanishing_point[0][0], vanishing_point[1][0]), 10, (255, 255, 255))
+		vanishing_point = Line.intersection(left_lane_line, right_lane_line)
+		vanishing_point_pixels = tuple2inttuple(colvec2tuple(vanishing_point))
+		cv2.circle(display_image, vanishing_point_pixels, 10, (255, 255, 255))
 
-		bottom_image_line = (np.matrix([[0],[480]]), np.matrix([[1],[0]]))
-		bottom_left = find_intersection_of_two_lines(left_lane_line, bottom_image_line)
-		bottom_right = find_intersection_of_two_lines(right_lane_line, bottom_image_line)
-		cv2.circle(display_image, (bottom_left[0][0], bottom_left[1][0]), 10, (0, 0, 255))
-		cv2.circle(display_image, (bottom_right[0][0], bottom_right[1][0]), 10, (255, 0, 0))
+		bottom_image_line = Line(np.matrix([[0],[480]]), np.matrix([[1],[0]]))
+		bottom_left = Line.intersection(left_lane_line, bottom_image_line)
+		bottom_right = Line.intersection(right_lane_line, bottom_image_line)
+		bottom_left_pixels = tuple2inttuple(colvec2tuple(bottom_left))
+		bottom_right_pixels = tuple2inttuple(colvec2tuple(bottom_right))
+		cv2.circle(display_image, bottom_left_pixels, 10, (0, 0, 255))
+		cv2.circle(display_image, bottom_right_pixels, 10, (255, 0, 0))
 
-		almost_bottom_image_line = (np.matrix([[0],[480-150]]), np.matrix([[1],[0]]))
-		almost_bottom_left = find_intersection_of_two_lines(left_lane_line, almost_bottom_image_line)
-		almost_bottom_right = find_intersection_of_two_lines(right_lane_line, almost_bottom_image_line)
-		cv2.circle(display_image, (almost_bottom_left[0][0], almost_bottom_left[1][0]), 10, (0, 0, 255))
-		cv2.circle(display_image, (almost_bottom_right[0][0], almost_bottom_right[1][0]), 10, (255, 0, 0))
+		almost_bottom_image_line = Line(np.matrix([[0],[480-150]]), np.matrix([[1],[0]]))
+		almost_bottom_left = Line.intersection(left_lane_line, almost_bottom_image_line)
+		almost_bottom_right = Line.intersection(right_lane_line, almost_bottom_image_line)
+		almost_bottom_left_pixels = tuple2inttuple(colvec2tuple(almost_bottom_left))
+		almost_bottom_right_pixels = tuple2inttuple(colvec2tuple(almost_bottom_right))
+		cv2.circle(display_image, almost_bottom_left_pixels, 10, (0, 0, 255))
+		cv2.circle(display_image, almost_bottom_right_pixels, 10, (255, 0, 0))
 
-		cv2.line(display_image, colvec2tuple(vanishing_point), colvec2tuple(bottom_left), (255, 0, 255), 1, cv2.CV_AA)
-		cv2.line(display_image, colvec2tuple(vanishing_point), colvec2tuple(bottom_right), (255, 0, 255), 1, cv2.CV_AA)
+		cv2.line(display_image, vanishing_point_pixels, bottom_left_pixels, (255, 0, 255), 1, cv2.CV_AA)
+		cv2.line(display_image, vanishing_point_pixels, bottom_right_pixels, (255, 0, 255), 1, cv2.CV_AA)
 
 		object_points = np.array([
 			[-1.6, 0, 0],
