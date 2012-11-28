@@ -1,5 +1,5 @@
 # UCLA - Fall 2012 - CS 268 Machine Perception
-# Professor: Stefano Soatto
+### Professor: Stefano Soatto
 
 ## Homework 4
 
