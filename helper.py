@@ -37,6 +37,12 @@ def tuple2colvec(colvec):
 	'''
 	return np.matrix([[x] for x in colvec])
 
+def augcolvec(colvec):
+	return tuple2colvec(tuple(list(colvec2tuple(colvec))+[1.0]))
+
+def unaugcolvec(colvec):
+	return tuple2colvec(tuple(list(colvec2tuple(colvec))[:-1]))
+
 def tuple2inttuple(v):
 	'''
 	Converts each item in a tuple to an integer.
