@@ -105,3 +105,61 @@ class Line():
 		# return the intersection point composed from the second parameter
 		return origin_b + unit_dir_b * t2
 
+def ransac_line(points, num_of_iterations = 100, tolerance = 4.0):
+	'''
+	TODO DOCUMENTATION
+	'''
+	# create a 'bag of points' that is a list of the points as column vectors
+	bag_of_points = [tuple2colvec(point) for point in points]
+
+	# initialize our best model
+	best_line_score = 0
+	best_line = None
+
+	# iterate num_of_iterations times
+	iteration_count = 0
+	while iteration_count < num_of_iterations:
+		
+		random.shuffle(bag_of_points)
+
+		# select two random points
+		point_a = bag_of_points[0]
+		point_b = bag_of_points[1]
+
+		# define the line
+		origin = point_a
+		unit_dir = (point_b - point_a)
+		unit_dir = unit_dir / np.linalg.norm(unit_dir)
+
+		# score this line
+		score = 0
+
+		# for each point other than the two used for the model
+		for point in bag_of_points[2:]:
+
+			# find the vector from the line origin to the point
+			origin_to_point = point - origin
+
+			# project that vector onto the line
+			proj_on_line = unit_dir * np.vdot(unit_dir.A, origin_to_point.A)
+
+			# subtract the projection from the origin to point vector getting the
+			# altitude
+			line_to_point = origin_to_point - proj_on_line
+
+			# the norm of the altitude is the distance from the point to the line
+			dist_from_line_to_point = np.linalg.norm(line_to_point)
+
+			# if the distance is within the tolerance, improve the score of this model
+			if dist_from_line_to_point <= tolerance:
+				score += (tolerance - dist_from_line_to_point)
+
+		# compare this to the best line so far, if it is better then set this model to
+		# the best line
+		if score > best_line_score:
+			best_line = (origin, unit_dir)
+			best_line_score = score
+
+		iteration_count += 1
+	
+	return best_line
