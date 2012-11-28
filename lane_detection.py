@@ -112,11 +112,20 @@ def create_search_strip_set(vertical_interval, vertical_step, width_interval, ce
 
 def find_lane_points(canny_image, search_strips, lane):
 	'''
-	TODO DOCUMENTATION
-	'''
+	Finds a set of points that should represent the lane. It does so by walking each
+	search strip from the middle of the lane outward until it runs into an edge in the
+	Canny edge detection image.
 
+	The first argument is the Canny image itself. The second argument, search_strips,
+	is a list of LaneSearchStrip objects. The third argument is a string, either
+	'left' or 'right' denoting what lane the search strips are looking for. This is
+	important because it determines which direction the search goes, left (for left)
+	and right (for right).
+	'''
+	# make sure the lane is either left or right
 	assert(lane == 'left' or lane == 'right')
 
+	# set up parameters of the search accordingly
 	if lane == 'left':
 		direction = -1
 		start_point_name = 'right_point'
@@ -126,26 +135,44 @@ def find_lane_points(canny_image, search_strips, lane):
 		start_point_name = 'left_point'
 		end_point_name = 'right_point'
 	
+	# initialize an empty set of points
 	lane_points = []
 
+	# search each search strip
 	for search_strip in search_strips:
+
+		# get the starting point of the search and the ending point of the search
+		# according to the lane-dependent search parameters
 		start_point = getattr(search_strip, start_point_name)
 		end_point = getattr(search_strip, end_point_name)
 
 		x, y = start_point
-
+		
+		# walk, pixel-by-pixel, in the correct search direction looking at the canny
+		# image until we see an edge (white)
 		while( x * direction <= end_point[0] * direction ):
 			intensity_at_point = canny_image[y][x]
+
+			#if we've found an edge, save this point and break
 			if intensity_at_point == 255:
 				lane_points.append((x, y))
 				break
+
 			x += direction
 
 	return lane_points
 
 def detect_lanes(cv_image, left_search_strips, right_search_strips):
 	'''
-	TODO DOCUMENTATION
+	Detects lanes in the specified image based on the specified search strips. The first
+	argument is a OpenCV image. The second and third arguments are the left and right
+	lane search strip sets respectively. The function returns a 4-tuple. The first item
+	in the tuple is a Boolean that is True if the lanes were found and False otherwise.
+	If the found flag is False, the rest of the tuple items are undefined. The second
+	and third items in the return tuple are Line objects representing the image line of
+	the left and right lanes respectively. The last item in the return tuple is a
+	column vector of NumPy matrix type of length 2 that represents the location of the
+	vanishing point.
 	'''
 	# turn canny detector knobs
 	low_threshold = 100
