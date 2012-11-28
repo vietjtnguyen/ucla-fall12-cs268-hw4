@@ -1,6 +1,18 @@
 #!/usr/bin/python
 
 '''
+This script is meant to be imported for its functionality. However, a standalone
+behavior does exist. Standalone behavior is to read a line from stdin and treat it as the
+file name for an image to perform lane detection on. Said file is then read in as an
+image. The lanes are detected, drawn on the image, and then displayed. The file name is read in from stdin because the test footage has a space in the file name and Pytho will
+automatically split the file name apart in sys.argv.
+
+EXAMPLE
+
+echo -n "LDWS_test/LDWS_test_data 001.bmp" | ./cv ipython --pdb ./line_detection.py
+
+LICENSE
+
 Copyright (c) 2012 Viet Nguyen
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this
@@ -21,7 +33,6 @@ DEALINGS IN THE SOFTWARE.
 '''
 
 import math
-import random
 import sys
 
 import cv2
@@ -132,6 +143,35 @@ def find_lane_points(canny_image, search_strips, lane):
 
 	return lane_points
 
+def detect_lanes(cv_image, left_search_strips, right_search_strips):
+	'''
+	TODO DOCUMENTATION
+	'''
+	# turn canny detector knobs
+	low_threshold = 100
+	ratio = 3
+
+	# apply the canny edge detector
+	canny_image = cv2.Canny(cv_image, low_threshold, low_threshold*ratio)
+
+	# find the intersections between the search strips and the edges from the canny
+	# detector
+	left_lane_points = find_lane_points(canny_image, left_search_strips, 'left')
+	right_lane_points = find_lane_points(canny_image, right_search_strips, 'right')
+
+	# fit line models to the intersections found
+	left_lane_line = ransac_line2d(left_lane_points)
+	right_lane_line = ransac_line2d(right_lane_points)
+
+	# if either of the lane lines cannot be found, return failure
+	if left_lane_line == None or right_lane_line == None:
+		return False, left_lane_line, right_lane_line, None
+
+	# find the vanishing point
+	vanishing_point = Line.intersection(left_lane_line, right_lane_line)
+
+	return True, left_lane_line, right_lane_line, vanishing_point
+
 def define_hw4_search_strips():
 	'''
 	Returns a 2-tuple containing the list of left lane search strips and the lits of
@@ -157,117 +197,43 @@ def define_hw4_search_strips():
 
 	return left_search_strips, right_search_strips
 
-def hw4_line_detection():
-	'''
-	TODO DOCUMENTATION
-	'''
-
-	image_paths = ['LDWS_test/LDWS_test_data {0:03}.bmp'.format(x) for x in range(1, 609)]
-
-	intrinsic_matrix, distortion_coefficients = intrinsic_calibration.hw4_calibration(False)
+if __name__ == '__main__':
+	image_path = sys.stdin.readline()
 
 	left_search_strips, right_search_strips = define_hw4_search_strips()
 
-	cv2.namedWindow('edges')
+	cv_image = cv2.imread(image_path)
 
-	#image_paths = image_paths[0:1]
-	#image_paths = ['LDWS_test/LDWS_test_data 155.bmp']
-
-	for image_path in image_paths:
-		cv_image = cv2.imread(image_path)
-
-		low_threshold = 100
-		ratio = 3
-
-		canny_image = cv2.Canny(cv_image, low_threshold, low_threshold*ratio)
-
-		left_lane_points = find_lane_points(canny_image, left_search_strips, 'left')
-		right_lane_points = find_lane_points(canny_image, right_search_strips, 'right')
-		
-		#display_image = cv2.cvtColor(canny_image, cv2.COLOR_GRAY2BGR)
-		display_image = cv_image
-
-		for search_strip in left_search_strips:
-			cv2.line(display_image, search_strip.left_point, search_strip.right_point, (0, 0, 255), 1, cv2.CV_AA)
-
-		for search_strip in right_search_strips:
-			cv2.line(display_image, search_strip.left_point, search_strip.right_point, (255, 0, 0), 1, cv2.CV_AA)
-
-		for point in left_lane_points + right_lane_points:
-			cv2.circle(display_image, point, 5, (0, 255, 0))
-
-		left_lane_line = ransac_line2d(left_lane_points)
-		right_lane_line = ransac_line2d(right_lane_points)
-
-		if left_lane_line == None or right_lane_line == None:
-			print('WARNING: Could not find lane lines in image "{0}"!'.format(image_path))
-			continue
-
-		vanishing_point = Line.intersection(left_lane_line, right_lane_line)
-		vanishing_point_pixels = tuple2inttuple(colvec2tuple(vanishing_point))
-		cv2.circle(display_image, vanishing_point_pixels, 10, (255, 255, 255))
-
-		bottom_image_line = Line(np.matrix([[0],[480]]), np.matrix([[1],[0]]))
-		bottom_left = Line.intersection(left_lane_line, bottom_image_line)
-		bottom_right = Line.intersection(right_lane_line, bottom_image_line)
-		bottom_left_pixels = tuple2inttuple(colvec2tuple(bottom_left))
-		bottom_right_pixels = tuple2inttuple(colvec2tuple(bottom_right))
-		cv2.circle(display_image, bottom_left_pixels, 10, (0, 0, 255))
-		cv2.circle(display_image, bottom_right_pixels, 10, (255, 0, 0))
-
-		almost_bottom_image_line = Line(np.matrix([[0],[480-150]]), np.matrix([[1],[0]]))
-		almost_bottom_left = Line.intersection(left_lane_line, almost_bottom_image_line)
-		almost_bottom_right = Line.intersection(right_lane_line, almost_bottom_image_line)
-		almost_bottom_left_pixels = tuple2inttuple(colvec2tuple(almost_bottom_left))
-		almost_bottom_right_pixels = tuple2inttuple(colvec2tuple(almost_bottom_right))
-		cv2.circle(display_image, almost_bottom_left_pixels, 10, (0, 0, 255))
-		cv2.circle(display_image, almost_bottom_right_pixels, 10, (255, 0, 0))
-
-		cv2.line(display_image, vanishing_point_pixels, bottom_left_pixels, (255, 0, 255), 1, cv2.CV_AA)
-		cv2.line(display_image, vanishing_point_pixels, bottom_right_pixels, (255, 0, 255), 1, cv2.CV_AA)
-
-		object_points = np.array([
-			[-1.6, 0, 0],
-			[1.6, 0, 0],
-			[-1.6, 4.0, 0],
-			[1.6, 4.0, 0],
-		])
-
-		image_points = np.array([
-			bottom_left.T.A[0],
-			bottom_right.T.A[0],
-			almost_bottom_left.T.A[0],
-			almost_bottom_right.T.A[0],
-		])
-		
-		solve_pnp_results = cv2.solvePnP(
-			object_points,
-			image_points,
-			intrinsic_matrix,
-			distortion_coefficients,
-		)
-
-		pnp_success, rotation_omega, translate = solve_pnp_results
-		horizontal_drift = -translate[0][0]
-		print(horizontal_drift)
-		
-		cv2.line(display_image, (320-80, 10), (320+80, 10), (0, 0, 0), 1, cv2.CV_AA)
-		cv2.line(display_image, (320-80, 10), (320-80, 50), (0, 0, 0), 1, cv2.CV_AA)
-		cv2.line(display_image, (320+80, 10), (320+80, 50), (0, 0, 0), 1, cv2.CV_AA)
-		cv2.line(display_image, (320-80, 50), (320+80, 50), (0, 0, 0), 1, cv2.CV_AA)
-		cv2.line(display_image, (320+int(40*horizontal_drift/0.4), 30), (320+int(40*horizontal_drift/0.4), 50), (0, 0, 0), 1, cv2.CV_AA)
-
-		cv2.imshow('edges', display_image)
-		cv2.waitKey(1)
-
-if __name__ == '__main__':
-
-	hw4_line_detection()
-
-	# end in an interactive shell so we can look at the values
-	try:
-		import IPython
-		IPython.embed()
-	except Exception as e:
+	if cv_image == None:
+		print('ERROR: Could not load file "{0}" as an image!'.format(image_path))
 		sys.exit()
+
+	lanes_found, left_lane_line, right_lane_line, vanishing_point = \
+		detect_lanes(
+			cv_image,
+			left_search_strips,
+			right_search_strips,
+		)
 	
+	if lanes_found == False:
+		print('ERROR: Could not find lanes in the image!')
+		sys.exit()
+
+	vanishing_point_pixels = tuple2inttuple(colvec2tuple(vanishing_point))
+	cv2.circle(cv_image, vanishing_point_pixels, 10, (255, 255, 255))
+
+	bottom_image_line = Line(np.matrix([[0],[480]]), np.matrix([[1],[0]]))
+	bottom_left = Line.intersection(left_lane_line, bottom_image_line)
+	bottom_right = Line.intersection(right_lane_line, bottom_image_line)
+	bottom_left_pixels = tuple2inttuple(colvec2tuple(bottom_left))
+	bottom_right_pixels = tuple2inttuple(colvec2tuple(bottom_right))
+	cv2.circle(cv_image, bottom_left_pixels, 10, (0, 0, 255))
+	cv2.circle(cv_image, bottom_right_pixels, 10, (255, 0, 0))
+
+	cv2.line(cv_image, vanishing_point_pixels, bottom_left_pixels, (255, 0, 255), 1, cv2.CV_AA)
+	cv2.line(cv_image, vanishing_point_pixels, bottom_right_pixels, (255, 0, 255), 1, cv2.CV_AA)
+
+	cv2.namedWindow('display')
+	cv2.imshow('display', cv_image)
+	cv2.waitKey(0)
+
