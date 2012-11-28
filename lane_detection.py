@@ -9,7 +9,7 @@ automatically split the file name apart in sys.argv.
 
 EXAMPLE
 
-echo -n "LDWS_test/LDWS_test_data 001.bmp" | ./cv ipython --pdb ./line_detection.py
+echo -n "LDWS_test/LDWS_test_data 001.bmp" | ./cv ipython --pdb ./lane_detection.py
 
 LICENSE
 

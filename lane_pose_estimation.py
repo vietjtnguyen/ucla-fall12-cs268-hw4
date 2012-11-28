@@ -28,7 +28,7 @@ import numpy as np
 
 from helper import colvec2tuple, tuple2colvec, tuple2inttuple
 import intrinsic_calibration
-import line_detection
+import lane_detection
 from line import Line
 
 def hw4_lane_pose_estimation():
@@ -40,7 +40,7 @@ def hw4_lane_pose_estimation():
 
 	intrinsic_matrix, distortion_coefficients = intrinsic_calibration.hw4_calibration(False)
 
-	left_search_strips, right_search_strips = line_detection.define_hw4_search_strips()
+	left_search_strips, right_search_strips = lane_detection.define_hw4_search_strips()
 
 	cv2.namedWindow('display')
 
@@ -48,7 +48,7 @@ def hw4_lane_pose_estimation():
 		cv_image = cv2.imread(image_path)
 
 		lanes_found, left_lane_line, right_lane_line, vanishing_point = \
-			line_detection.detect_lanes(
+			lane_detection.detect_lanes(
 				cv_image,
 				left_search_strips,
 				right_search_strips,
