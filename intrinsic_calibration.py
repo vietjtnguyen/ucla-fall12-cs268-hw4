@@ -1,6 +1,12 @@
 #!/usr/bin/python
 
 '''
+This script is meant to be imported for its functionality. However, a standalone behavior
+does exist. It will perform calibration for homework 4 and print out the intrinsic camera
+matrix and the distortion coefficients. It will also display the calibration images used.
+
+LICENSE
+
 Copyright (c) 2012 Viet Nguyen
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this
@@ -193,11 +199,4 @@ if __name__ == '__main__':
 	print('')
 	print('distortion_coefficients:')
 	print(distortion_coefficients)
-
-	# end in an interactive shell so we can look at the values
-	try:
-		import IPython
-		IPython.embed()
-	except Exception as e:
-		sys.exit()
 
